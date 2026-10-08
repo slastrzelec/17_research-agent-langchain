@@ -7,7 +7,7 @@ langgraph-sdk==0.4.6
 langfuse==3.14.5
 openai==2.54.0
 streamlit==1.55.0
-python-dotenv==1.2.2
+python-dotenv==1.2.4
 requests==2.33.0
 defusedxml==0.7.1
 plotly==6.6.0
