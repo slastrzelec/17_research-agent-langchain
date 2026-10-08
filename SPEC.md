@@ -133,3 +133,10 @@ Not measured (stated in the README): factual correctness of free-text answers. N
 ## 14. Change log (continued)
 - 2026-10-08 — release 2 spec: evaluation harness, sources, create_agent migration, lint/audit.
 - 2026-10-08 — release 2 implemented: `create_agent` + `AgentResult`; own Wikipedia/ArXiv/PubMed clients with sources (content_and_artifact); `evaluation/` (32 cases, scoring, guarded runner); ruff, pip-audit, Dependabot. Dependencies bumped to versions without known advisories (pip-audit found 12 advisories in the old pins: langchain, langchain-core, langchain-openai, requests, langgraph-sdk); 91 tests pass on the new pins. Unverified: live OpenAI/Wikipedia/ArXiv/PubMed calls; evaluation numbers (owner runs `evaluation.run_eval`). Spec deviation: tests also assert that the repo's own `.env` can never enable tracing in tests (conftest blanks LangFuse keys).
+
+## 15. Answer rendering (addendum, 2026-10-08)
+Problem seen on the live demo: models answer in Markdown/LaTeX (`\[ ... \]`), but answers were shown as escaped plain text, so formulas appeared as raw LaTeX.
+- Answers are rendered with `st.markdown` **without** `unsafe_allow_html`, so raw HTML from the model is never interpreted.
+- LaTeX delimiters `\( \)` / `\[ \]` are converted to the `$ … $` / `$$ … $$` that Streamlit renders; literal `$` signs are escaped first so prices are not read as math.
+- **Markdown images are stripped** from model output before rendering. Reason: an auto-loaded image URL is a known data-exfiltration channel for prompt-injected answers (the URL can carry conversation text to a third-party server without any click). Links stay as text and need a user click.
+- Tests: LaTeX conversion, `$` escaping, image stripping (inline and reference style), and that the answer element is created with `allow_html == False`.

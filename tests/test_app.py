@@ -42,7 +42,8 @@ def app(tmp_path, monkeypatch):
 
 
 def _html(at):
-    return " ".join(m.value for m in at.markdown)
+    """Everything that Streamlit would interpret as HTML (allow_html=True elements only)."""
+    return " ".join(m.value for m in at.markdown if m.allow_html)
 
 
 def test_starts_without_errors(app):
@@ -73,12 +74,14 @@ def test_stats_and_recent_queries_only_for_own_session(app):
     assert [m.value for m in app.sidebar.metric][0] == "1"
 
 
-def test_agent_exception_shows_friendly_error(app, monkeypatch):
+def test_agent_exception_shows_friendly_error(app, monkeypatch, caplog):
     def boom(*a, **k):
         raise RuntimeError("secret internal detail sk-123")
     sys.modules["agent"].run_agent = boom
     app.chat_input[0].set_value("hi").run()
     assert any("RuntimeError" in e.value and "sk-123" not in e.value for e in app.error)
+    # ...but the traceback is logged on the server, so failures can be diagnosed
+    assert any("Agent call failed" in r.getMessage() and r.exc_info for r in caplog.records)
 
 
 def test_sources_are_rendered_as_escaped_links(app):
@@ -87,3 +90,9 @@ def test_sources_are_rendered_as_escaped_links(app):
     assert 'href="https://arxiv.org/abs/1"' in html
     assert "&lt;b&gt;Paper&lt;/b&gt;" in html and "<b>Paper</b>" not in html
     assert 'rel="noopener noreferrer"' in html
+
+
+def test_answer_is_rendered_without_html_and_without_images(app):
+    app.chat_input[0].set_value("hello").run()
+    answers = [m for m in app.markdown if m.value.startswith("🤖")]
+    assert answers and all(not m.allow_html for m in answers)

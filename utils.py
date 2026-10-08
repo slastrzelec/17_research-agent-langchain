@@ -2,6 +2,7 @@
 import csv
 import html
 import io
+import re
 
 TOOL_ICONS = {"wikipedia": "📖", "arxiv": "📄", "pubmed_search": "🧬", "calculate": "🧮"}
 
@@ -37,3 +38,23 @@ def rows_to_csv(rows) -> bytes:
     for row in rows:
         writer.writerow([_csv_safe(c) for c in row])
     return buf.getvalue().encode("utf-8")
+
+
+_IMG_INLINE = re.compile(r"!\[([^\]]*)\]\([^)]*\)")
+_IMG_REF = re.compile(r"!\[([^\]]*)\]\[[^\]]*\]")
+_LATEX_BLOCK = re.compile(r"\\\[(.+?)\\\]", re.DOTALL)
+_LATEX_INLINE = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
+
+
+def render_answer(text: str) -> str:
+    """Make model output safe and nice for st.markdown (no unsafe_allow_html).
+
+    - images are removed (auto-loaded URLs could leak conversation text to a third party);
+    - literal dollar signs are escaped so they are not read as math;
+    - LaTeX \\( \\) and \\[ \\] delimiters become $ and $$, which Streamlit renders.
+    """
+    text = _IMG_INLINE.sub(lambda m: m.group(1), text)
+    text = _IMG_REF.sub(lambda m: m.group(1), text)
+    text = text.replace("$", "\\$")
+    text = _LATEX_BLOCK.sub(lambda m: "$$" + m.group(1).strip() + "$$", text)
+    return _LATEX_INLINE.sub(lambda m: "$" + m.group(1).strip() + "$", text)

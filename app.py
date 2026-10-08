@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 import pandas as pd
@@ -7,7 +8,9 @@ import streamlit as st
 from agent import run_agent
 from database import get_conversations, init_db, save_conversation
 from limits import ALLOWED_MODELS, MAX_QUESTIONS_PER_SESSION, LimitExceeded, SessionUsage, UsageLimiter
-from utils import esc, format_step, rows_to_csv, tool_icon
+from utils import esc, format_step, render_answer, rows_to_csv, tool_icon
+
+logger = logging.getLogger(__name__)
 
 init_db()
 
@@ -23,15 +26,6 @@ st.markdown("""
     margin: 8px 0;
     max-width: 80%;
     margin-left: auto;
-    color: #e2e8f0;
-}
-.agent-bubble {
-    background: #1a1a2e;
-    border-radius: 18px 18px 18px 4px;
-    padding: 12px 18px;
-    margin: 8px 0;
-    max-width: 80%;
-    border-left: 3px solid #00ff9d;
     color: #e2e8f0;
 }
 .tool-step {
@@ -84,7 +78,8 @@ for item in st.session_state.chat:
         for step in item["steps"]:
             st.markdown(f'<div class="tool-step">{format_step(step)}</div>', unsafe_allow_html=True)
 
-    st.markdown(f'<div class="agent-bubble">🤖 {esc(item["answer"])}</div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("🤖 " + render_answer(item["answer"]))  # no unsafe_allow_html
     if item["sources"]:
         links = " · ".join(
             f'<a href="{esc(s["url"])}" target="_blank" rel="noopener noreferrer">{esc(s["title"])}</a>'
@@ -106,6 +101,8 @@ if question:
     except LimitExceeded as e:
         st.warning(str(e))
     except Exception as e:  # network / OpenAI / recursion-limit errors
+        # The visitor sees only the error type; the full traceback goes to the server log.
+        logger.exception("Agent call failed (model=%s, question_chars=%d)", model, len(question))
         st.error(f"The agent could not answer ({type(e).__name__}). Please try again.")
     else:
         weighted = st.session_state.usage.record(model, result.tokens)
