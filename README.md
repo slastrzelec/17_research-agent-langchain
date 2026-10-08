@@ -2,7 +2,7 @@
 
 A ReAct-style research assistant built with LangChain, LangGraph and Streamlit. Given a scientific question, the agent decides whether to search Wikipedia, ArXiv or PubMed, or to run a calculation, and answers with the sources it used.
 
-[![tests](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml/badge.svg)](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml)
+[![tests](https://github.com/slastrzelec/research-agent-langchain/actions/workflows/ci.yml/badge.svg)](https://github.com/slastrzelec/research-agent-langchain/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![LangChain](https://img.shields.io/badge/LangChain-1.3-green)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.55-red)
@@ -57,8 +57,8 @@ notebooks/      01_agent_dev.ipynb — early development notebook
 ## Run locally
 
 ```bash
-git clone https://github.com/slastrzelec/17_research-agent-langchain.git
-cd 17_research-agent-langchain
+git clone https://github.com/slastrzelec/research-agent-langchain.git
+cd research-agent-langchain
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
@@ -81,7 +81,7 @@ ruff check . && pytest            # lint + tests
 
 ## Testing
 
-**95 automated tests** (pytest, in [`tests/`](tests/)) run on every push in [GitHub Actions](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml) (config: [ci.yml](.github/workflows/ci.yml)) together with a `ruff` lint check; a separate job runs `pip-audit` on the pinned dependencies. The suite needs **no API key and no network**, so anyone can run it in seconds: `pytest`.
+**95 automated tests** (pytest, in [`tests/`](tests/)) run on every push in [GitHub Actions](https://github.com/slastrzelec/research-agent-langchain/actions/workflows/ci.yml) (config: [ci.yml](.github/workflows/ci.yml)) together with a `ruff` lint check; a separate job runs `pip-audit` on the pinned dependencies. The suite needs **no API key and no network**, so anyone can run it in seconds: `pytest`.
 
 | Area | What is verified |
 |---|---|
