@@ -9,7 +9,7 @@ A ReAct-style research assistant built with LangChain, LangGraph and Streamlit. 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Live demo:** https://research-agent-langchain.streamlit.app/ (free tier: the app sleeps after inactivity — click "wake up" and wait a minute).  
-**Portfolio page:** [slastrzelec.github.io/portfolio/17_research-agent-langchain](https://slastrzelec.github.io/portfolio/17_research-agent-langchain/) · **Spec and threat model:** [SPEC.md](SPEC.md)
+**Portfolio page:** [slastrzelec.github.io/portfolio/research-agent-langchain](https://slastrzelec.github.io/portfolio/research-agent-langchain/) · **Spec and threat model:** [SPEC.md](SPEC.md)
 
 ## Features
 
