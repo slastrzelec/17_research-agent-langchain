@@ -4,11 +4,12 @@ A ReAct-style research assistant built with LangChain, LangGraph and Streamlit. 
 
 [![tests](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml/badge.svg)](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![LangChain](https://img.shields.io/badge/LangChain-1.2-green)
+![LangChain](https://img.shields.io/badge/LangChain-1.3-green)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.55-red)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**Live demo:** https://research-agent-langchain.streamlit.app/ (free tier: the app sleeps after inactivity — click "wake up" and wait a minute).
+**Live demo:** https://research-agent-langchain.streamlit.app/ (free tier: the app sleeps after inactivity — click "wake up" and wait a minute).  
+**Portfolio page:** [slastrzelec.github.io/portfolio/17_research-agent-langchain](https://slastrzelec.github.io/portfolio/17_research-agent-langchain/) · **Spec and threat model:** [SPEC.md](SPEC.md)
 
 ## Features
 
@@ -80,7 +81,7 @@ ruff check . && pytest            # lint + tests
 
 ## Testing
 
-**95 automated tests** (pytest) run on every push in GitHub Actions together with a `ruff` lint check; a separate job runs `pip-audit` on the pinned dependencies. The suite needs **no API key and no network**, so anyone can run it in seconds: `pytest`.
+**95 automated tests** (pytest, in [`tests/`](tests/)) run on every push in [GitHub Actions](https://github.com/slastrzelec/17_research-agent-langchain/actions/workflows/ci.yml) (config: [ci.yml](.github/workflows/ci.yml)) together with a `ruff` lint check; a separate job runs `pip-audit` on the pinned dependencies. The suite needs **no API key and no network**, so anyone can run it in seconds: `pytest`.
 
 | Area | What is verified |
 |---|---|
@@ -100,7 +101,7 @@ I checked that the tests can fail: breaking HTML escaping or the calculator whit
 
 ## Evaluation
 
-`evaluation/` holds 32 hand-written cases (16 `dev`, 16 `test`: Wikipedia, ArXiv, PubMed, calculator, no-tool and two safety categories). Metrics: tool choice, numeric correctness of calculator answers, safety checks (code injection, system-prompt extraction), source coverage, tokens and latency, each with a Wilson 95 % interval. Rules: tune on `dev` only; `test` runs once per model + prompt/tool configuration (the runner refuses a repeat). Free-text factual correctness is **not** measured automatically — see `evaluation/manual_review.md`.
+[`evaluation/`](evaluation/) holds 32 hand-written cases ([`cases.jsonl`](evaluation/cases.jsonl), runner [`run_eval.py`](evaluation/run_eval.py), raw [results](evaluation/results/)) (16 `dev`, 16 `test`: Wikipedia, ArXiv, PubMed, calculator, no-tool and two safety categories). Metrics: tool choice, numeric correctness of calculator answers, safety checks (code injection, system-prompt extraction), source coverage, tokens and latency, each with a Wilson 95 % interval. Rules: tune on `dev` only; `test` runs once per model + prompt/tool configuration (the runner refuses a repeat). Free-text factual correctness is **not** measured automatically — see [`evaluation/manual_review.md`](evaluation/manual_review.md).
 
 ```bash
 python -m evaluation.run_eval --split dev      # needs OPENAI_API_KEY, costs a few cents
