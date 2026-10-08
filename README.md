@@ -12,8 +12,9 @@ A ReAct-style research assistant built with LangChain, LangGraph and Streamlit. 
 
 ## Features
 
-- **4 tools**: Wikipedia, ArXiv, PubMed (NCBI E-utilities), calculator
-- **ReAct agent** (`langgraph.prebuilt.create_react_agent`); the visible steps show which tool was called
+- **4 tools**: Wikipedia, ArXiv, PubMed (thin `requests` clients with timeouts), calculator
+- **Tool-calling agent** (`langchain.agents.create_agent`, ReAct loop); the visible steps show which tool was called
+- **Sources**: links to the pages and papers the tools actually retrieved, shown under every answer (taken from the API responses, not from model text; allow-listed hosts only). "Retrieved" does not guarantee the answer cites them.
 - **Short-term memory**: the last 6 messages of the session are sent back to the model
 - **Per-session history**: queries are logged to SQLite, shown and exported (CSV) only for your own session
 - **Optional LangFuse tracing**: enabled only if both LangFuse keys are set
@@ -34,14 +35,20 @@ Not covered: authentication and per-IP rate limiting. The daily budget and an Op
 ## Project structure
 
 ```
-agent.py        agent + tools (LangFuse optional)
+agent.py        agent graph, run_agent() -> AgentResult (LangFuse optional)
+tools.py        the four LangChain tools (content + sources)
+wiki.py         Wikipedia client
+arxiv_search.py ArXiv client
 app.py          Streamlit UI
 safe_calc.py    safe arithmetic evaluator
-pubmed.py       PubMed client (timeouts, defensive parsing)
+pubmed.py       PubMed client
+sources.py      source-link allow-list
+evaluation/     eval cases (dev/test), scoring, runner
 limits.py       session and daily usage limits
 database.py     SQLite storage, migration, retention
 utils.py        HTML escaping, CSV export
-tests/          pytest suite (no network, no API key needed)
+tests/          pytest suite (no network, no API key; a scripted fake model drives the real agent graph)
+pyproject.toml  ruff + pytest config
 SPEC.md         specification and threat model
 notebooks/      01_agent_dev.ipynb — early development notebook
 ```
@@ -67,15 +74,32 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com
 
 ```bash
 streamlit run app.py
-pip install pytest && pytest      # tests
+pip install -r requirements-dev.txt
+ruff check . && pytest            # lint + tests
 ```
+
+## Evaluation
+
+`evaluation/` holds 32 hand-written cases (16 `dev`, 16 `test`: Wikipedia, ArXiv, PubMed, calculator, no-tool and two safety categories). Metrics: tool choice, numeric correctness of calculator answers, safety checks (code injection, system-prompt extraction), source coverage, tokens and latency, each with a Wilson 95 % interval. Rules: tune on `dev` only; `test` runs once per model + prompt/tool configuration (the runner refuses a repeat). Free-text factual correctness is **not** measured automatically — see `evaluation/manual_review.md`.
+
+```bash
+python -m evaluation.run_eval --split dev      # needs OPENAI_API_KEY, costs a few cents
+```
+
+**Results: not yet run.** (This table is filled in only from real runs.)
+
+| split | model | tool choice | calculator | safety | sources | mean tokens |
+|---|---|---|---|---|---|---|
+| dev | gpt-4o-mini | – | – | – | – | – |
+| test | gpt-4o-mini | – | – | – | – | – |
 
 ## Limitations
 
 - Answer quality is **not evaluated**: there is no benchmark of tool choice or answer correctness, and the model can still hallucinate. Treat answers as a starting point and check the sources.
-- Wikipedia and ArXiv results are truncated by the LangChain wrappers; PubMed returns at most 3 abstracts (3000 characters).
+- Search results are truncated: Wikipedia 2 intros (1500 characters each), ArXiv 3 abstracts, PubMed 3 abstracts (3000 characters in total).
 - The SQLite file lives on the app's local disk; on Streamlit Community Cloud it is lost on restart.
-- The tests mock the network and the LLM; the live OpenAI and LangFuse paths are verified by hand only.
+- The tests mock the network and the LLM; the live OpenAI, Wikipedia, ArXiv, PubMed and LangFuse paths are verified by hand only.
+- Dependencies were upgraded to versions without known advisories (`pip-audit` clean at the time of writing); CI repeats the check on every push (informational job) and Dependabot proposes updates weekly.
 
 ## Example questions
 

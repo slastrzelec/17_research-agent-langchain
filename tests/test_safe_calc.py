@@ -1,4 +1,5 @@
 import pytest
+
 from safe_calc import CalcError, safe_eval
 
 
@@ -43,7 +44,7 @@ def test_length_and_complexity_and_empty():
 
 
 def test_calculate_tool_never_executes_code(tmp_path):
-    from agent import calculate
+    from tools import calculate
     marker = tmp_path / "pwned"
     out = calculate.invoke({"expression": f"__import__('pathlib').Path(r'{marker}').touch()"})
     assert out.startswith("Error")

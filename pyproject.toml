@@ -1,0 +1,18 @@
+# Tool configuration only (the project is an app, not a package).
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agent", "app", "arxiv_search", "database", "limits", "pubmed", "safe_calc",
+                     "sources", "tools", "utils", "wiki", "evaluation", "fakes"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106", "S108"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

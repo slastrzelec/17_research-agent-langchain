@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime, timedelta
 
 import pytest
+
 import database as db
 
 
@@ -33,9 +34,11 @@ def test_migration_from_first_version_and_legacy_rows_hidden(tmp_path, monkeypat
     conn = sqlite3.connect(path)
     conn.execute("CREATE TABLE conversations (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp TEXT NOT NULL, "
                  "question TEXT NOT NULL, answer TEXT NOT NULL, tools_used TEXT, tokens_used INTEGER)")
-    conn.execute("INSERT INTO conversations (timestamp, question, answer, tools_used, tokens_used) VALUES (?,?,?,?,?)",
+    conn.execute("INSERT INTO conversations "
+                 "(timestamp, question, answer, tools_used, tokens_used) VALUES (?,?,?,?,?)",
                  (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "old q", "old a", "none", 1))
-    conn.commit(); conn.close()
+    conn.commit()
+    conn.close()
     monkeypatch.setenv("RESEARCH_AGENT_DB", str(path))
     db.init_db()
     db.save_conversation("S", "new", "a", [], 1)
@@ -46,9 +49,11 @@ def test_migration_from_first_version_and_legacy_rows_hidden(tmp_path, monkeypat
 def test_retention_purge(tmp_path):
     old = (datetime.now() - timedelta(days=45)).strftime("%Y-%m-%d %H:%M:%S")
     conn = sqlite3.connect(tmp_path / "t.db")
-    conn.execute("INSERT INTO conversations (timestamp, question, answer, tools_used, tokens_used, session_id) "
+    conn.execute("INSERT INTO conversations "
+                 "(timestamp, question, answer, tools_used, tokens_used, session_id) "
                  "VALUES (?,?,?,?,?,?)", (old, "ancient", "a", "none", 1, "A"))
-    conn.commit(); conn.close()
+    conn.commit()
+    conn.close()
     db.save_conversation("A", "fresh", "a", [], 1)
     db.init_db()
     assert [r[1] for r in db.get_conversations("A")] == ["fresh"]

@@ -71,7 +71,10 @@ class SessionUsage:
         if len(question) > MAX_QUESTION_CHARS:
             raise LimitExceeded(f"Question is too long (max {MAX_QUESTION_CHARS} characters).")
         if self.questions >= MAX_QUESTIONS_PER_SESSION:
-            raise LimitExceeded(f"Session limit reached ({MAX_QUESTIONS_PER_SESSION} questions). Reload the page to start a new session.")
+            raise LimitExceeded(
+                f"Session limit reached ({MAX_QUESTIONS_PER_SESSION} questions). "
+                "Reload the page to start a new session."
+            )
         if self.weighted_tokens >= MAX_TOKENS_PER_SESSION:
             raise LimitExceeded("Session token budget used up. Reload the page to start a new session.")
 

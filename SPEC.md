@@ -74,3 +74,62 @@ CI: GitHub Actions, Python 3.11, `pip install -r requirements.txt pytest`, `pyte
 
 ## 8. Change log
 - 2026-10-08 — spec written after audit; implementation follows.
+
+---
+
+# Release 2 — evaluation, sources, modern stack
+
+Status: approved for implementation 2026-10-08. Builds on sections 1–8 (all their security rules stay in force).
+
+## 9. Goals
+1. **Measure** the agent instead of asserting it works: tool choice, calculator correctness, safety behaviour, source coverage, cost.
+2. **Show sources**: every answer lists the pages/papers the tools actually retrieved, as links.
+3. Leave deprecated APIs behind (`create_react_agent` → `langchain.agents.create_agent`) and add lint + dependency hygiene to CI.
+4. Small robustness gains: model timeout/retries, hard timeouts on every external HTTP call.
+
+## 10. Evaluation design
+**Cases** — `evaluation/cases.jsonl`, 32 hand-written cases, 16 `dev` + 16 `test`, same category mix in both:
+Wikipedia 4, ArXiv 3, PubMed 3, calculator 3, no-tool 1, safety 2 (calculator code-injection, system-prompt extraction).
+Fields: `id, split, category, question, expected_tools_any, allow_no_tool, numeric_answer, must_not_match`.
+
+**Metrics** (each with a Wilson 95 % interval — n is small, so intervals are wide and are reported, not hidden):
+| Metric | Definition |
+|---|---|
+| tool_ok | called ∩ expected ≠ ∅ (or no tool call when `allow_no_tool`; no-tool cases: no call at all) |
+| numeric_ok | some number in the answer equals `numeric_answer` within 1 % (handles `1.5e-9`, `1.5 × 10^-9`, `1,234.5`) |
+| safety_ok | answer does not match any `must_not_match` pattern and no code was executed |
+| sources_ok | retrieval cases: at least one source returned by the tools |
+| error rate, mean tokens, median latency | from the run |
+Not measured (stated in the README): factual correctness of free-text answers. No LLM-as-judge (cost, self-preference bias). Instead the owner grades a sample of 8 test answers by hand (0/1/2) in `evaluation/manual_review.md`.
+
+**Leakage / overfitting rules** (same discipline as the owner's other projects):
+- Prompt or tool changes may be tuned **on `dev` only**. `test` is run once per (model, prompt-hash); the runner keeps `evaluation/results/test_runs.json` and refuses a second `test` run for the same pair unless `--force-rerun-test` is given, which is then recorded in that log.
+- Case text is never embedded in the system prompt, tool descriptions or tests of app behaviour; a unit test fails if any case question appears in `agent.py`, `tools.py` or `SYSTEM_PROMPT`.
+- Each result file stores: model, prompt hash, split, per-case outcome, summary. Nothing else.
+
+**Data security of the eval**: cases are synthetic (no personal data, no real patient or customer text). Questions and answers go to OpenAI like any demo query. The runner reads `OPENAI_API_KEY` from the environment only, never prints or stores it, and has a hard `--max-tokens` guard (default 400 000). Results contain no secrets and may be committed.
+
+**Execution**: scoring logic is pure Python and unit-tested with fake run results (no API). The live run (`python -m evaluation.run_eval --split dev|test`) is done by the owner with his own key; the README shows real numbers only after that run. Until then it says "not yet run".
+
+## 11. Sources
+- Tools return `(text, sources)` using LangChain's `content_and_artifact`; sources are `{title, url}` produced by our code from API responses — **not parsed from model text or tool prose**, so prompt injection cannot add links.
+- Only `https` URLs on `en.wikipedia.org`, `arxiv.org`, `pubmed.ncbi.nlm.nih.gov` are accepted (`sources.clean_sources`); rendering escapes titles and URLs.
+- UI label: "Sources retrieved by the tools" — retrieved is not the same as cited in the answer, and the README says so.
+- Wikipedia and ArXiv move from `langchain-community` wrappers to our own thin clients on `requests` (timeout 10 s, defensive parsing, `defusedxml` for the Atom feed). Dependencies `langchain-community`, `wikipedia`, `arxiv` are dropped from `requirements.txt`; the dev notebook states what it needs.
+- PubMed: add `esummary` for titles; PMID validated as digits before building a URL.
+
+## 12. Modern stack and CI
+- `agent.py`: `langchain.agents.create_agent`, `run_agent` returns an `AgentResult` dataclass (answer, steps, tools_used, tokens, sources). Stream node names handled for the new graph.
+- Model client: `timeout=30`, `max_retries=2`.
+- `pyproject.toml`: ruff (E, F, I, B, UP, S; tests may use `assert`) and pytest settings. CI runs ruff, then pytest; a separate non-blocking `pip-audit` job; Dependabot for pip and GitHub Actions (weekly).
+- A scripted fake chat model drives an integration test of `run_agent` (tool call → tool result → answer, usage tokens, sources, recursion limit) without network.
+
+## 13. Acceptance criteria (release 2)
+- Ruff clean; all tests green locally; CI green after push (owner verifies).
+- `run_agent` integration test passes with the fake model; sources survive end-to-end into the UI test.
+- Scoring tests cover number extraction, Wilson interval, test-split guard, leakage check.
+- Stated as unverified until the owner runs it: real eval numbers, behaviour of the live OpenAI model with the new prompt.
+
+## 14. Change log (continued)
+- 2026-10-08 — release 2 spec: evaluation harness, sources, create_agent migration, lint/audit.
+- 2026-10-08 — release 2 implemented: `create_agent` + `AgentResult`; own Wikipedia/ArXiv/PubMed clients with sources (content_and_artifact); `evaluation/` (32 cases, scoring, guarded runner); ruff, pip-audit, Dependabot. Dependencies bumped to versions without known advisories (pip-audit found 12 advisories in the old pins: langchain, langchain-core, langchain-openai, requests, langgraph-sdk); 91 tests pass on the new pins. Unverified: live OpenAI/Wikipedia/ArXiv/PubMed calls; evaluation numbers (owner runs `evaluation.run_eval`). Spec deviation: tests also assert that the repo's own `.env` can never enable tracing in tests (conftest blanks LangFuse keys).

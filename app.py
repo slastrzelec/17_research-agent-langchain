@@ -6,8 +6,7 @@ import streamlit as st
 
 from agent import run_agent
 from database import get_conversations, init_db, save_conversation
-from limits import (ALLOWED_MODELS, MAX_QUESTIONS_PER_SESSION, LimitExceeded,
-                    SessionUsage, UsageLimiter)
+from limits import ALLOWED_MODELS, MAX_QUESTIONS_PER_SESSION, LimitExceeded, SessionUsage, UsageLimiter
 from utils import esc, format_step, rows_to_csv, tool_icon
 
 init_db()
@@ -86,6 +85,13 @@ for item in st.session_state.chat:
             st.markdown(f'<div class="tool-step">{format_step(step)}</div>', unsafe_allow_html=True)
 
     st.markdown(f'<div class="agent-bubble">🤖 {esc(item["answer"])}</div>', unsafe_allow_html=True)
+    if item["sources"]:
+        links = " · ".join(
+            f'<a href="{esc(s["url"])}" target="_blank" rel="noopener noreferrer">{esc(s["title"])}</a>'
+            for s in item["sources"]
+        )
+        st.markdown(f'<div class="tool-step">📚 Sources retrieved by the tools: {links}</div>',
+                    unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
 # INPUT
@@ -96,23 +102,22 @@ if question:
         st.session_state.usage.check(question, model)
         limiter.check()
         with st.spinner("Agent is thinking..."):
-            answer, steps, tools_used, tokens_used = run_agent(
-                question, st.session_state.history, model=model
-            )
+            result = run_agent(question, st.session_state.history, model=model)
     except LimitExceeded as e:
         st.warning(str(e))
     except Exception as e:  # network / OpenAI / recursion-limit errors
         st.error(f"The agent could not answer ({type(e).__name__}). Please try again.")
     else:
-        weighted = st.session_state.usage.record(model, tokens_used)
+        weighted = st.session_state.usage.record(model, result.tokens)
         limiter.add(weighted)
         st.session_state.history.append(("user", question))
-        st.session_state.history.append(("assistant", answer))
+        st.session_state.history.append(("assistant", result.answer))
         st.session_state.chat.append({
-            "question": question, "answer": answer, "steps": steps,
-            "tools_used": tools_used, "tokens_used": tokens_used,
+            "question": question, "answer": result.answer, "steps": result.steps,
+            "tools_used": result.tools_used, "tokens_used": result.tokens,
+            "sources": result.sources,
         })
-        save_conversation(session_id, question, answer, tools_used, tokens_used)
+        save_conversation(session_id, question, result.answer, result.tools_used, result.tokens)
         st.rerun()
 
 # SIDEBAR: statistics of THIS session only
