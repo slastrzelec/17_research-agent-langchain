@@ -11,6 +11,8 @@ A ReAct-style research assistant built with LangChain, LangGraph and Streamlit. 
 **Live demo:** https://research-agent-langchain.streamlit.app/ (free tier: the app sleeps after inactivity — click "wake up" and wait a minute).  
 **Portfolio page:** [slastrzelec.github.io/portfolio/research-agent-langchain](https://slastrzelec.github.io/portfolio/research-agent-langchain/) · **Spec and threat model:** [SPEC.md](SPEC.md)
 
+![Scientific Research Agent: answer with retrieved sources](docs/app_view.png)
+
 ## Features
 
 - **4 tools**: Wikipedia, ArXiv, PubMed (thin `requests` clients with timeouts), calculator
