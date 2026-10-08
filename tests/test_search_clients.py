@@ -101,3 +101,13 @@ def test_clean_sources_allow_list():
     assert [s["url"] for s in out] == ["https://arxiv.org/abs/1", "https://pubmed.ncbi.nlm.nih.gov/1/"]
     assert out[1]["title"] == "https://pubmed.ncbi.nlm.nih.gov/1/"
     assert clean_sources(None) == []
+
+
+def test_group_sources():
+    from sources import group_sources
+    items = [{"title": f"w{i}", "url": f"https://en.wikipedia.org/wiki/W{i}"} for i in range(3)]
+    items.append({"title": "a", "url": "https://arxiv.org/abs/1"})
+    groups = group_sources(items, per_group=2)
+    assert [g["label"] for g in groups] == ["📖 Wikipedia", "📄 ArXiv"]
+    assert len(groups[0]["shown"]) == 2 and len(groups[0]["extra"]) == 1 and groups[1]["extra"] == []
+    assert group_sources([]) == []

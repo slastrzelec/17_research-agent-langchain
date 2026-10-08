@@ -20,3 +20,20 @@ def clean_sources(items) -> list[dict]:
         seen.add(url)
         out.append({"title": title.strip()[:MAX_TITLE] or url, "url": url})
     return out
+
+
+GROUPS = (
+    ("en.wikipedia.org", "📖 Wikipedia"),
+    ("arxiv.org", "📄 ArXiv"),
+    ("pubmed.ncbi.nlm.nih.gov", "🧬 PubMed"),
+)
+
+
+def group_sources(sources: list[dict], per_group: int = 2) -> list[dict]:
+    """Group links by origin. Returns [{label, shown, extra}] for non-empty groups only."""
+    out = []
+    for host, label in GROUPS:
+        items = [s for s in sources if urlsplit(s["url"]).hostname == host]
+        if items:
+            out.append({"label": label, "shown": items[:per_group], "extra": items[per_group:]})
+    return out

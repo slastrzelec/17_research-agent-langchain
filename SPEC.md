@@ -140,3 +140,6 @@ Problem seen on the live demo: models answer in Markdown/LaTeX (`\[ ... \]`), bu
 - LaTeX delimiters `\( \)` / `\[ \]` are converted to the `$ … $` / `$$ … $$` that Streamlit renders; literal `$` signs are escaped first so prices are not read as math.
 - **Markdown images are stripped** from model output before rendering. Reason: an auto-loaded image URL is a known data-exfiltration channel for prompt-injected answers (the URL can carry conversation text to a third-party server without any click). Links stay as text and need a user click.
 - Tests: LaTeX conversion, `$` escaping, image stripping (inline and reference style), and that the answer element is created with `allow_html == False`.
+
+## 16. Source list layout (addendum, 2026-10-08)
+Live demo showed 8 mixed links under one answer, some irrelevant. Sources are now grouped by origin (📖 Wikipedia, 📄 ArXiv, 🧬 PubMed — derived from the allow-listed host), the first 2 per group are shown, the rest sit in an expander ("More sources (n)"). The label stays "retrieved by the tools" (retrieved ≠ cited). The 🤖 prefix on answers is removed (it rendered as a stray dot). Tests: grouping/limits and escaping of titles in both parts.

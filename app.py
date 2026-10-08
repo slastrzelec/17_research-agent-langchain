@@ -8,7 +8,8 @@ import streamlit as st
 from agent import run_agent
 from database import get_conversations, init_db, save_conversation
 from limits import ALLOWED_MODELS, MAX_QUESTIONS_PER_SESSION, LimitExceeded, SessionUsage, UsageLimiter
-from utils import esc, format_step, render_answer, rows_to_csv, tool_icon
+from sources import group_sources
+from utils import esc, format_step, render_answer, rows_to_csv, source_links_html, tool_icon
 
 logger = logging.getLogger(__name__)
 
@@ -79,14 +80,16 @@ for item in st.session_state.chat:
             st.markdown(f'<div class="tool-step">{format_step(step)}</div>', unsafe_allow_html=True)
 
     with st.container(border=True):
-        st.markdown("🤖 " + render_answer(item["answer"]))  # no unsafe_allow_html
+        st.markdown(render_answer(item["answer"]))  # no unsafe_allow_html
     if item["sources"]:
-        links = " · ".join(
-            f'<a href="{esc(s["url"])}" target="_blank" rel="noopener noreferrer">{esc(s["title"])}</a>'
-            for s in item["sources"]
-        )
-        st.markdown(f'<div class="tool-step">📚 Sources retrieved by the tools: {links}</div>',
-                    unsafe_allow_html=True)
+        st.markdown('<div class="tool-step">📚 Sources retrieved by the tools</div>', unsafe_allow_html=True)
+        for group in group_sources(item["sources"]):
+            st.markdown(f'<div class="tool-step">{group["label"]}: {source_links_html(group["shown"])}</div>',
+                        unsafe_allow_html=True)
+            if group["extra"]:
+                with st.expander(f'More {group["label"]} sources ({len(group["extra"])})'):
+                    st.markdown(f'<div class="tool-step">{source_links_html(group["extra"])}</div>',
+                                unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
 # INPUT

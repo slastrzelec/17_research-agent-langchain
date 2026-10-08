@@ -29,7 +29,8 @@ def app(tmp_path, monkeypatch):
             answer=f"answer to {question}",
             steps=["🔧 Using tool: `calculate` with query: `{}`"],
             tools_used=["calculate"], tokens=100,
-            sources=[{"title": "<b>Paper</b>", "url": "https://arxiv.org/abs/1"}],
+            sources=[{"title": "<b>Paper</b>", "url": "https://arxiv.org/abs/1"}] + [
+                {"title": f"Wiki {i}", "url": f"https://en.wikipedia.org/wiki/W{i}"} for i in range(4)],
         )
 
     stub = types.ModuleType("agent")
@@ -94,5 +95,14 @@ def test_sources_are_rendered_as_escaped_links(app):
 
 def test_answer_is_rendered_without_html_and_without_images(app):
     app.chat_input[0].set_value("hello").run()
-    answers = [m for m in app.markdown if m.value.startswith("🤖")]
+    answers = [m for m in app.markdown if m.value.startswith("answer to")]
     assert answers and all(not m.allow_html for m in answers)
+
+
+def test_sources_are_grouped_and_overflow_is_collapsed(app):
+    app.chat_input[0].set_value("hello").run()
+    html = _html(app)
+    assert "📖 Wikipedia" in html and "📄 ArXiv" in html
+    assert "Wiki 0" in html and "Wiki 1" in html          # first two shown directly
+    labels = [e.label for e in app.expander]
+    assert "More 📖 Wikipedia sources (2)" in labels      # the other two are collapsed

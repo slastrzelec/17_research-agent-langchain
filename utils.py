@@ -58,3 +58,11 @@ def render_answer(text: str) -> str:
     text = text.replace("$", "\\$")
     text = _LATEX_BLOCK.sub(lambda m: "$$" + m.group(1).strip() + "$$", text)
     return _LATEX_INLINE.sub(lambda m: "$" + m.group(1).strip() + "$", text)
+
+
+def source_links_html(items: list[dict]) -> str:
+    """Escaped, new-tab links separated by dots."""
+    return " · ".join(
+        f'<a href="{esc(i["url"])}" target="_blank" rel="noopener noreferrer">{esc(i["title"])}</a>'
+        for i in items
+    )
